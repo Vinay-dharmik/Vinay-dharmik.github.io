@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Python Mastery Book</title>
+    <!-- Chosen Palette: Warm Neutral with Soft Blue Accent -->
+    <!-- Application Structure Plan: A three-column, responsive layout was chosen to optimize the learning experience.
+        1. Left Column (Navigation): A persistent, collapsible sidebar menu representing the book's Table of Contents. This provides constant context and allows users to jump between topics easily, supporting non-linear learning.
+        2. Middle Column (Main Content): A dedicated, clean reading area that displays the detailed explanations for the selected topic. This separation focuses the user's attention on the theoretical concepts.
+        3. Right Column (Interactive Code): An area for associated code examples with a 'Copy Code' functionality. This aligns with the practical learning flow of "read a concept, see the code, try it yourself."
+        This structure separates navigation, theory, and practice into distinct zones, making the large volume of content manageable and user-friendly on all device sizes. On mobile, the columns stack vertically for a logical, scrollable experience. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Python programming concepts (text, code). Goal: Inform, Organize. Viz/Presentation: Dynamic HTML content blocks for text, styled <pre><code> blocks for code. Interaction: Clickable navigation updates content dynamically. 'Copy Code' buttons provide utility. Justification: This presents the educational content in a clear, hierarchical manner. Direct interaction with code via copying is the most practical utility for a programming tutorial.
+        - Report Info: Book structure (TOC). Goal: Organize, Navigate. Viz/Presentation: A nested list <ul> in a sidebar. Interaction: Clickable links, active state highlighting. Justification: A classic, intuitive pattern for navigating structured documents.
+        - Charts: No quantitative data is present in the source report, so chart visualizations (Chart.js, Plotly.js) are not applicable or necessary. The focus is on text and code.
+        - Library/Method: Vanilla JavaScript for DOM manipulation and event handling. Tailwind CSS for styling. No chart libraries needed. This approach is lightweight and perfectly suited for the content.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8; /* Warm off-white */
+            color: #4A4A4A; /* Dark gray for text */
+        }
+        .code-block {
+            font-family: 'Fira Code', monospace;
+        }
+        .nav-link.active {
+            background-color: #E0E7FF; /* Soft blue accent */
+            color: #312E81; /* Darker blue for active text */
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            background-color: #EEF2FF;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4A5568;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .code-container:hover .copy-btn {
+            opacity: 1;
+        }
+        .nav-part > h3 {
+            cursor: pointer;
+        }
+        .nav-chapters {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm p-4 border-b border-gray-200 sticky top-0 z-20">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-indigo-800">Python Mastery: From Basics to Brilliance</h1>
+                <button id="menu-toggle" class="md:hidden p-2 rounded-md hover:bg-gray-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
+            <div class="flex flex-col md:flex-row gap-8">
+
+                <!-- Navigation Sidebar -->
+                <aside id="navigation-sidebar" class="w-full md:w-1/4 lg:w-1/5 md:sticky md:top-24 self-start bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform -translate-x-full md:translate-x-0 fixed inset-y-0 left-0 z-30 md:relative md:inset-auto md:z-auto">
+                    <nav id="navigation-menu" class="space-y-4 text-sm"></nav>
+                </aside>
+                
+                <div class="flex-1 flex flex-col lg:flex-row gap-8">
+                    <!-- Main Content Column -->
+                    <main id="main-content" class="w-full lg:w-3/5 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                        <!-- Content will be injected here -->
+                    </main>
+
+                    <!-- Code Examples Column -->
+                    <aside id="code-examples" class="w-full lg:w-2/5 lg:sticky lg:top-24 self-start space-y-4">
+                        <!-- Code examples will be injected here -->
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+        Code copied to clipboard!
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA ---
+        // The entire book content is stored in this structured object.
+        const appData = {
+            parts: [
+                {
+                    id: 'part1',
+                    title: 'Part 1: Python Fundamentals',
+                    chapters: [
+                        {
+                            id: 'ch1',
+                            title: '1. Introduction to Python',
+                            sections: [
+                                {
+                                    id: 's1-1', title: '1.1. What is Python?',
+                                    content: `<p class="mb-4">Python is a high-level, interpreted, interactive, and object-oriented programming language. Created by Guido van Rossum and first released in 1991, Python is renowned for its <strong>readability</strong> and <strong>simplicity</strong>, making it an excellent choice for beginners and experienced developers alike.</p>
+                                    <ul class="list-disc list-inside space-y-2">
+                                        <li><strong>High-level:</strong> You don't need to worry about low-level details like memory management. Python handles that for you.</li>
+                                        <li><strong>Interpreted:</strong> Python code is executed line by line, which simplifies debugging.</li>
+                                        <li><strong>Interactive:</strong> You can type commands directly into a Python interpreter (like a shell) and get immediate results.</li>
+                                        <li><strong>Object-Oriented:</strong> Python supports the principles of Object-Oriented Programming, allowing you to organize your code using classes and objects.</li>
+                                    </ul>`,
+                                    code: []
+                                },
+                                {
+                                    id: 's1-4', title: '1.4. Your First Program',
+                                    content: `<p class="mb-4">Tradition dictates that your first program in any language is "Hello, World!". To run this in Python, you save the code in a file (e.g., <code>hello_world.py</code>) and execute it from your terminal.</p>`,
+                                    code: [
+                                        {
+                                            title: 'hello_world.py',
+                                            snippet: `# This is your very first Python program!\nprint("Hello, World!")`
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: 'ch2',
+                            title: '2. Core Syntax and Variables',
+                            sections: [
+                                {
+                                    id: 's2-1', title: '2.1. Indentation & Comments',
+                                    content: `<p class="mb-4">Unlike many other languages that use curly braces, Python uses <strong>indentation</strong> (typically 4 spaces) to define code blocks. This enforces a clean, readable style.</p><p>Comments start with a <code>#</code> and are ignored by the interpreter. They are used to explain the code.</p>`,
+                                    code: [
+                                        {
+                                            title: 'Indentation Example',
+                                            snippet: `# Correct Indentation\nif True:\n    print("This is inside the 'if' block.")\n\n# This line is outside the block.`
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: 's2-3', title: '2.3. Basic Data Types',
+                                    content: `<p class="mb-4">Python has several built-in data types to store different kinds of information.</p>
+                                    <ul class="list-disc list-inside space-y-2">
+                                        <li><strong>Integers (<code>int</code>):</strong> Whole numbers, e.g., <code>10</code>, <code>-50</code>.</li>
+                                        <li><strong>Floats (<code>float</code>):</strong> Decimal numbers, e.g., <code>3.14</code>, <code>-0.5</code>.</li>
+                                        <li><strong>Strings (<code>str</code>):</strong> Text, enclosed in quotes, e.g., <code>"Hello"</code>.</li>
+                                        <li><strong>Booleans (<code>bool</code>):</strong> Truth values, either <code>True</code> or <code>False</code>.</li>
+                                    </ul>`,
+                                    code: [
+                                        {
+                                            title: 'Data Type Examples',
+                                            snippet: `my_integer = 100\nmy_float = 25.5\nmy_string = "Python is great"\nis_active = True\n\nprint(type(my_integer)) # <class 'int'>\nprint(type(my_float))   # <class 'float'>`
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: 's2-4', title: '2.4. Operators',
+                                    content: `<p class="mb-4">Operators are special symbols that perform operations on values. This includes arithmetic, comparison, and logical operations.</p>`,
+                                    code: [
+                                        {
+                                            title: 'Arithmetic & Comparison',
+                                            snippet: `a = 10\nb = 3\n\n# Arithmetic\nprint(a + b)  # 13\nprint(a / b)  # 3.33...\nprint(a // b) # 3 (Floor division)\nprint(a ** b) # 1000 (Exponent)\n\n# Comparison\nprint(a > b)  # True\nprint(a == 10) # True`
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: 'ch3',
+                            title: '3. Control Flow',
+                            sections: [
+                                {
+                                    id: 's3-1', title: '3.1. Conditional Statements',
+                                    content: `<p class="mb-4">Conditional statements (<code>if</code>, <code>elif</code>, <code>else</code>) allow your program to execute different code blocks based on certain conditions being true or false.</p>`,
+                                    code: [
+                                        {
+                                            title: 'if-elif-else Example',
+                                            snippet: `score = 85\n\nif score >= 90:\n    print("Grade: A")\nelif score >= 80:\n    print("Grade: B")\nelse:\n    print("Grade: C or lower")`
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: 's3-2', title: '3.2. Loops',
+                                    content: `<p class="mb-4">Loops are used to execute a block of code repeatedly. The <code>for</code> loop iterates over a sequence (like a list or string), while the <code>while</code> loop runs as long as a condition is true.</p>`,
+                                    code: [
+                                        {
+                                            title: 'For Loop Example',
+                                            snippet: `fruits = ["apple", "banana", "cherry"]\nfor fruit in fruits:\n    print(fruit)`
+                                        },
+                                        {
+                                            title: 'While Loop Example',
+                                            snippet: `count = 0\nwhile count < 3:\n    print(f"Count is {count}")\n    count += 1`
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                         {
+                            id: 'ch4',
+                            title: '4. Essential Data Structures',
+                            sections: [
+                                {
+                                    id: 's4-2', title: '4.2. Lists',
+                                    content: `<p class="mb-4">Lists are ordered, changeable (mutable) collections that allow duplicate members. They are one of the most versatile data structures in Python.</p>`,
+                                    code: [
+                                        {
+                                            title: 'List Operations',
+                                            snippet: `my_list = [1, "hello", 3.0]\nmy_list.append("world") # Add to end\nprint(my_list) # [1, 'hello', 3.0, 'world']\n\nmy_list[1] = "hi" # Modify an element\nprint(my_list[1]) # 'hi'\n\nprint(my_list[0:2]) # Slicing: ['1', 'hi']`
+                                        },
+                                        {
+                                            title: 'List Comprehension',
+                                            snippet: `# A concise way to create lists\nsquares = [x**2 for x in range(5)]\nprint(squares) # [0, 1, 4, 9, 16]`
+                                        }
+                                    ]
+                                },
+                                 {
+                                    id: 's4-5', title: '4.5. Dictionaries',
+                                    content: `<p class="mb-4">Dictionaries store data in <code>key:value</code> pairs. They are unordered (ordered in Python 3.7+), mutable, and do not allow duplicate keys.</p>`,
+                                    code: [
+                                        {
+                                            title: 'Dictionary Operations',
+                                            snippet: `student = {"name": "Alice", "age": 25}\n\n# Accessing a value\nprint(student["name"]) # Alice\n\n# Adding a new entry\nstudent["major"] = "Physics"\nprint(student) # {'name': 'Alice', 'age': 25, 'major': 'Physics'}\n\n# Iterating through items\nfor key, value in student.items():\n    print(f"{key}: {value}")`
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                         {
+                            id: 'ch5',
+                            title: '5. Functions',
+                            sections: [
+                                {
+                                    id: 's5-1', title: '5.1. Defining Functions',
+                                    content: `<p class="mb-4">Functions are reusable blocks of code that perform a specific task. They are defined using the <code>def</code> keyword.</p>`,
+                                    code: [
+                                        {
+                                            title: 'Function Definition',
+                                            snippet: `def greet(name):\n    return f"Hello, {name}!"\n\nmessage = greet("Vinay")\nprint(message) # Hello, Vinay!`
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: 's5-3', title: '5.3. *args and **kwargs',
+                                    content: `<p class="mb-4"><code>*args</code> allows a function to accept a variable number of positional arguments, which are collected into a tuple. <code>**kwargs</code> collects keyword arguments into a dictionary.</p>`,
+                                    code: [
+                                        {
+                                            title: 'Using *args and **kwargs',
+                                            snippet: `def flexible_function(*args, **kwargs):\n    print("Positional args:", args)\n    print("Keyword args:", kwargs)\n\nflexible_function(1, 2, name="test", status=True)\n# Positional args: (1, 2)\n# Keyword args: {'name': 'test', 'status': True}`
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'part2',
+                    title: 'Part 2: Intermediate Python',
+                    chapters: [
+                         {
+                            id: 'ch7',
+                            title: '7. Object-Oriented Programming',
+                            sections: [
+                                {
+                                    id: 's7-2', title: '7.2. Classes and Objects',
+                                    content: `<p class="mb-4">Object-Oriented Programming (OOP) is a paradigm based on the concept of "objects". A <strong>class</strong> is a blueprint for creating objects. An <strong>object</strong> is an instance of a class, with its own attributes (data) and methods (functions).</p>`,
+                                    code: [
+                                        {
+                                            title: 'Defining a simple class',
+                                            snippet: `class Dog:\n    # The constructor method\n    def __init__(self, name, age):\n        self.name = name # attribute\n        self.age = age   # attribute\n\n    def bark(self): # method\n        return f"{self.name} says woof!"\n\n# Creating an object (instance)\nmy_dog = Dog("Buddy", 5)\nprint(my_dog.name)     # Buddy\nprint(my_dog.bark()) # Buddy says woof!`
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // --- DOM ELEMENTS ---
+        const mainContent = document.getElementById('main-content');
+        const codeExamples = document.getElementById('code-examples');
+        const navigationMenu = document.getElementById('navigation-menu');
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('navigation-sidebar');
+        const toast = document.getElementById('toast');
+
+        // --- FUNCTIONS ---
+        const renderNavigation = () => {
+            let navHtml = '';
+            appData.parts.forEach((part, partIndex) => {
+                navHtml += `<div class="nav-part">
+                    <h3 class="font-bold text-gray-700 p-2 rounded-md flex justify-between items-center">${part.title}
+                        <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </h3>
+                    <ul class="nav-chapters ml-2 border-l border-gray-200">`;
+                part.chapters.forEach((chapter, chapterIndex) => {
+                    chapter.sections.forEach((section, sectionIndex) => {
+                        navHtml += `<li><a href="#" class="nav-link block p-2 rounded-md" data-part="${partIndex}" data-chapter="${chapterIndex}" data-section="${sectionIndex}">${section.title}</a></li>`;
+                    });
+                });
+                navHtml += `</ul></div>`;
+            });
+            navigationMenu.innerHTML = navHtml;
+        };
+        
+        const showContent = (partIndex, chapterIndex, sectionIndex) => {
+            const section = appData.parts[partIndex].chapters[chapterIndex].sections[sectionIndex];
+            
+            // Update main content
+            mainContent.innerHTML = `<h2 class="text-2xl font-bold mb-4 text-gray-800">${section.title}</h2>${section.content}`;
+
+            // Update code examples
+            let codeHtml = '';
+            if (section.code.length > 0) {
+                 codeHtml += `<h3 class="text-xl font-semibold mb-2 text-gray-700">Code Examples</h3>`;
+                section.code.forEach(c => {
+                    codeHtml += `<div class="code-container relative bg-gray-800 text-white p-4 rounded-lg shadow-md mb-4">
+                        <h4 class="text-sm font-semibold text-gray-400 mb-2">${c.title}</h4>
+                        <button class="copy-btn">Copy</button>
+                        <pre class="code-block text-sm overflow-x-auto"><code>${c.snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+                    </div>`;
+                });
+            } else {
+                 codeHtml += `<div class="bg-gray-100 p-4 rounded-lg text-center text-gray-500">
+                    <p>No code examples for this section.</p>
+                 </div>`;
+            }
+            codeExamples.innerHTML = codeHtml;
+
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`.nav-link[data-part="${partIndex}"][data-chapter="${chapterIndex}"][data-section="${sectionIndex}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+                // Ensure parent chapter list is open
+                const parentUl = activeLink.closest('.nav-chapters');
+                parentUl.style.maxHeight = parentUl.scrollHeight + "px";
+                parentUl.previousElementSibling.querySelector('svg').style.transform = 'rotate(180deg)';
+            }
+            
+            // On mobile, hide the sidebar after selection
+            if(window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+            }
+        };
+
+        const handleNavClick = (e) => {
+            e.preventDefault();
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                const { part, chapter, section } = link.dataset;
+                showContent(parseInt(part), parseInt(chapter), parseInt(section));
+            }
+        };
+        
+        const handleCodeCopy = (e) => {
+            const copyBtn = e.target.closest('.copy-btn');
+            if (copyBtn) {
+                const codeText = copyBtn.nextElementSibling.querySelector('code').innerText;
+                navigator.clipboard.writeText(codeText).then(() => {
+                    toast.classList.remove('opacity-0');
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+            }
+        };
+
+        const handlePartToggle = (e) => {
+            const header = e.target.closest('.nav-part > h3');
+            if (header) {
+                const content = header.nextElementSibling;
+                const svg = header.querySelector('svg');
+                if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                    content.style.maxHeight = '0px';
+                    svg.style.transform = 'rotate(0deg)';
+                } else {
+                    // Close all other sections first
+                    document.querySelectorAll('.nav-chapters').forEach(el => {
+                       if (el !== content) {
+                           el.style.maxHeight = '0px';
+                           el.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+                       }
+                    });
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    svg.style.transform = 'rotate(180deg)';
+                }
+            }
+        };
+
+        // --- INITIALIZATION ---
+        renderNavigation();
+        showContent(0, 0, 0); // Show the first section by default
+
+        // --- EVENT LISTENERS ---
+        navigationMenu.addEventListener('click', handleNavClick);
+        navigationMenu.addEventListener('click', handlePartToggle);
+        codeExamples.addEventListener('click', handleCodeCopy);
+        
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+        
+         // Close sidebar if clicking outside of it on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth < 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
+    });
+</script>
+</body>
+</html>

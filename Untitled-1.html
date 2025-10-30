@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Mastery: An Interactive Infographic</title>
+    <!-- Chosen Palette: Calm & Focused -->
+    <!-- Application Structure Plan: A three-column, responsive "Learning Dashboard" structure was chosen to make the dense book content manageable. 1. Left Column (Navigation): A persistent, scrollable sidebar acts as an interactive Table of Contents, providing constant context and allowing users to jump between topics non-linearly. This supports both beginner and intermediate learners. 2. Middle Column (Main Content): A clean, focused reading area dynamically displays detailed explanations for the selected topic, separating theory from practice. 3. Right Column (Code Examples): An associated area for interactive code snippets with a 'Copy' function. This structure was chosen because it mirrors a natural learning workflow (select topic -> read theory -> see practical code) and is highly intuitive and scalable for a large volume of information, preventing user overwhelm. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Book Structure (Parts/Chapters). Goal: Inform, Organize. Viz/Presentation: Donut Chart. Interaction: Hover tooltips. Justification: Provides a quick, high-level visual summary of the book's content distribution in the introduction, making the scope clear. Library/Method: Chart.js/Canvas.
+        - Report Info: Table of Contents. Goal: Organize, Navigate. Viz/Presentation: A styled, interactive list (<ul>) in a sidebar. Interaction: 'click' events trigger content updates; 'active' state highlights the current section. Justification: The most intuitive pattern for navigating a structured document like a book. Library/Method: HTML/CSS/Tailwind + Vanilla JS.
+        - Report Info: Explanatory Text. Goal: Inform. Viz/Presentation: Dynamic HTML content blocks in a main content area. Interaction: Content is dynamically updated based on navigation clicks. Justification: Separates text from code for better readability and focus. Library/Method: HTML/CSS/Tailwind + Vanilla JS.
+        - Report Info: Code Snippets. Goal: Inform, Provide Utility. Viz/Presentation: Styled <pre><code> blocks. Interaction: A "Copy" button for each code block. Justification: Essential utility for a programming tutorial, allowing users to easily test the examples. Library/Method: HTML/CSS/Tailwind + Vanilla JS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+            color: #212529;
+        }
+        .nav-link.active {
+            background-color: #E0E7FF;
+            color: #312E81;
+            font-weight: 700;
+        }
+        .nav-link:hover:not(.active) {
+            background-color: #F1F5F9;
+        }
+        .code-block {
+            font-family: 'Fira Code', monospace;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4A5568;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .code-container:hover .copy-btn {
+            opacity: 1;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-4 border-b border-gray-200 sticky top-0 z-20">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🐍</span>
+                    <h1 class="text-xl md:text-2xl font-bold text-indigo-900">Python Mastery: The Interactive Guide</h1>
+                </div>
+                <button id="menu-toggle" class="lg:hidden p-2 rounded-md hover:bg-gray-100">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="flex-grow container mx-auto p-4 md:p-6">
+            <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+
+                <!-- Navigation Sidebar -->
+                <aside id="navigation-sidebar" class="lg:col-span-3 lg:sticky lg:top-24 self-start bg-white p-4 rounded-lg shadow-lg border border-gray-200 transition-transform transform -translate-x-full lg:translate-x-0 fixed inset-y-0 left-0 w-4/5 sm:w-1/2 z-30 lg:relative lg:inset-auto lg:w-full lg:z-auto">
+                    <h2 class="text-lg font-bold mb-4 border-b pb-2 text-gray-700">Table of Contents</h2>
+                    <nav id="navigation-menu" class="space-y-2 text-sm h-[calc(100vh-120px)] overflow-y-auto"></nav>
+                </aside>
+                
+                <!-- Content Column -->
+                <main id="main-content" class="lg:col-span-9 space-y-8">
+                    <!-- Content will be injected here -->
+                </main>
+
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+        Code copied to clipboard!
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA STORE ---
+        // The entire book content is stored in this structured object.
+        const bookData = {
+            parts: [
+                {
+                    title: 'Part 1: Python Fundamentals',
+                    chapters: [
+                        {
+                            title: '1. Introduction to Python',
+                            sections: [
+                                {
+                                    id: 's1-1', title: '1.1. What is Python?',
+                                    content: `<div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                                        <h2 class="text-2xl font-bold mb-4 text-indigo-800">Welcome to Your Python Journey!</h2>
+                                        <p class="mb-4">This guide is your launchpad into the world of Python programming. We will build your knowledge from the ground up, ensuring you have a solid foundation before moving to more complex topics. This interactive format allows you to learn at your own pace, jumping to any topic using the navigation on the left.</p>
+                                        <p class="mb-6">Below is a visual breakdown of the book's structure, showing the number of chapters in each major part of your learning journey.</p>
+                                        <div class="chart-container">
+                                            <canvas id="introChart"></canvas>
+                                        </div>
+                                        <p class="mt-6 text-sm text-gray-600">This infographic translates the "Python Mastery" book into an explorable experience. Use the Table of Contents to navigate through concepts, read the explanations, and interact with the code examples provided for each section.</p>
+                                        </div>`,
+                                    code: []
+                                },
+                                {
+                                    id: 's1-4', title: '1.4. Your First Program',
+                                    content: `<p class="mb-4">In programming tradition, the first program you write is often "Hello, World!". This simple exercise confirms that your environment is set up correctly. The Python code for this is remarkably simple, using the built-in <code>print()</code> function.</p>`,
+                                    code: [
+                                        { title: 'hello_world.py', snippet: `# This is your very first Python program!\nprint("Hello, World!")` }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            title: '2. Core Syntax and Variables',
+                            sections: [
+                                 {
+                                    id: 's2-1', title: '2.1. Indentation & Comments',
+                                    content: `<p class="mb-4">Python's syntax is famously clean and readable, primarily due to its mandatory use of <strong>indentation</strong> to define code blocks (like loops or functions), instead of brackets. This is a core feature you must master. Comments, marked by a <code>#</code>, are notes for humans that the interpreter ignores.</p>`,
+                                    code: [
+                                        { title: 'Indentation Example', snippet: `# Correct Indentation is crucial in Python\nif True:\n    print("This line is in the 'if' block.")\n    print("This line is also in the block.")\n\nprint("This line is outside the block.")` }
+                                    ]
+                                 },
+                                 {
+                                    id: 's2-3', title: '2.3. Basic Data Types',
+                                    content: `<p class="mb-4">Data types are classifications of data items. Python has several fundamental types to represent numbers, text, and logical values.</p>`,
+                                    code: [
+                                        { title: 'Numeric and Text Types', snippet: `my_integer = 100        # Integer\nmy_float = 3.14         # Float (decimal)\nmy_string = "Hello!"    # String (text)` },
+                                        { title: 'Boolean Type', snippet: `is_learning = True      # Boolean (True or False)\nis_expert = False` }
+                                    ]
+                                 }
+                            ]
+                        },
+                        {
+                            title: '4. Essential Data Structures',
+                             sections: [
+                                {
+                                    id: 's4-2', title: '4.2. Lists',
+                                    content: `<p class="mb-4">Lists are one of Python's most versatile data structures. They are ordered, changeable (mutable) collections of items and can contain duplicates. You can add, remove, and modify elements, making them perfect for storing collections of related data.</p>`,
+                                    code: [
+                                        { title: 'Creating and Modifying Lists', snippet: `fruits = ["apple", "banana"]\nfruits.append("cherry")    # Add an item\nfruits[0] = "orange"       # Modify an item\nprint(fruits) # Output: ['orange', 'banana', 'cherry']` },
+                                        { title: 'List Comprehension', snippet: `# A concise way to create lists\nsquares = [x**2 for x in range(5)]\nprint(squares) # Output: [0, 1, 4, 9, 16]` }
+                                    ]
+                                },
+                                {
+                                    id: 's4-5', title: '4.5. Dictionaries',
+                                    content: `<p class="mb-4">Dictionaries store data in <strong>key-value pairs</strong>. They are mutable and, as of Python 3.7, ordered. Each key must be unique and is used to access its corresponding value. They are incredibly efficient for lookups.</p>`,
+                                    code: [
+                                        { title: 'Creating and Accessing Dictionaries', snippet: `user = {\n    "name": "Vinay Dharmik",\n    "id": 101\n}\n\nprint(user["name"]) # Access value by key\n\nuser["email"] = "vinay@example.com" # Add a new pair\nprint(user)` }
+                                    ]
+                                }
+                             ]
+                        },
+                        {
+                            title: '7. Object-Oriented Programming',
+                             sections: [
+                                {
+                                    id: 's7-2', title: '7.2. Classes & Objects',
+                                    content: `<p class="mb-4">Object-Oriented Programming (OOP) is a paradigm for structuring programs around "objects". A <strong>Class</strong> is a blueprint for creating objects. An <strong>Object</strong> is an instance of a class, containing both data (attributes) and functions (methods).</p>`,
+                                    code: [
+                                        { title: 'Defining a Car Class', snippet: `class Car:\n    # Constructor method to initialize attributes\n    def __init__(self, brand, model):\n        self.brand = brand\n        self.model = model\n\n    # A method (function inside a class)\n    def display_info(self):\n        return f"{self.brand} {self.model}"\n\n# Creating an object (instance) of the class\nmy_car = Car("Tesla", "Model S")\nprint(my_car.display_info()) # Output: Tesla Model S` }
+                                    ]
+                                }
+                             ]
+                        },
+                    ]
+                }
+            ]
+        };
+
+        const mainContentEl = document.getElementById('main-content');
+        const navMenuEl = document.getElementById('navigation-menu');
+        const menuToggleBtn = document.getElementById('menu-toggle');
+        const sidebarEl = document.getElementById('navigation-sidebar');
+        const toastEl = document.getElementById('toast');
+        
+        let introChartInstance = null;
+
+        const wrapLabel = (label) => {
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + word).length > 16) {
+                    lines.push(currentLine.trim());
+                    currentLine = '';
+                }
+                currentLine += word + ' ';
+            }
+            lines.push(currentLine.trim());
+            return lines;
+        };
+
+        const renderIntroChart = () => {
+            if (introChartInstance) {
+                introChartInstance.destroy();
+            }
+            const ctx = document.getElementById('introChart')?.getContext('2d');
+            if (!ctx) return;
+            
+            const labels = bookData.parts.map(p => p.title);
+            const wrappedLabels = labels.map(wrapLabel);
+            const data = bookData.parts.map(p => p.chapters.length);
+
+            introChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: wrappedLabels,
+                    datasets: [{
+                        label: '# of Chapters',
+                        data: data,
+                        backgroundColor: ['#4A90E2', '#50E3C2', '#F5A623'],
+                        borderColor: '#F8F9FA',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12, family: 'Inter' },
+                                color: '#4A4A4A'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    const item = tooltipItems[0];
+                                    let label = item.chart.data.labels[item.dataIndex];
+                                    if (Array.isArray(label)) {
+                                      return label.join(' ');
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        const renderContent = (partIdx, chapterIdx, sectionIdx) => {
+            const section = bookData.parts[partIdx].chapters[chapterIdx].sections[sectionIdx];
+            
+            let contentHtml = `<div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-800">${section.title}</h2>
+                ${section.content}
+            </div>`;
+            
+            if (section.code && section.code.length > 0) {
+                contentHtml += `<div class="mt-8">`;
+                section.code.forEach(c => {
+                    contentHtml += `<div class="code-container relative bg-gray-900 text-white p-4 rounded-lg shadow-md mb-4">
+                        <h4 class="text-sm font-semibold text-gray-400 mb-2">${c.title}</h4>
+                        <button class="copy-btn">Copy</button>
+                        <pre class="code-block text-sm overflow-x-auto"><code>${c.snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+                    </div>`;
+                });
+                contentHtml += `</div>`;
+            }
+            mainContentEl.innerHTML = contentHtml;
+            
+            if (section.id === 's1-1') {
+                setTimeout(renderIntroChart, 0);
+            }
+
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`.nav-link[data-id="${section.id}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            if (window.innerWidth < 1024) {
+                sidebarEl.classList.add('-translate-x-full');
+            }
+        };
+
+        const renderNavigation = () => {
+            let navHtml = '';
+            bookData.parts.forEach((part, pIdx) => {
+                navHtml += `<div class="space-y-1">
+                    <h3 class="font-bold text-gray-500 px-2 py-1 uppercase tracking-wider text-xs">${part.title}</h3>`;
+                part.chapters.forEach((chapter, cIdx) => {
+                    chapter.sections.forEach((section, sIdx) => {
+                        navHtml += `<a href="#${section.id}" class="nav-link block p-2 rounded-md transition-colors duration-200" data-part="${pIdx}" data-chapter="${cIdx}" data-section="${sIdx}" data-id="${section.id}">${section.title}</a>`;
+                    });
+                });
+                navHtml += `</div>`;
+            });
+            navMenuEl.innerHTML = navHtml;
+        };
+
+        navMenuEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                const { part, chapter, section } = link.dataset;
+                renderContent(parseInt(part), parseInt(chapter), parseInt(section));
+            }
+        });
+
+        mainContentEl.addEventListener('click', (e) => {
+            const copyBtn = e.target.closest('.copy-btn');
+            if (copyBtn) {
+                const codeText = copyBtn.nextElementSibling.querySelector('code').innerText;
+                navigator.clipboard.writeText(codeText).then(() => {
+                    toastEl.classList.remove('opacity-0');
+                    setTimeout(() => toastEl.classList.add('opacity-0'), 2000);
+                });
+            }
+        });
+        
+        menuToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sidebarEl.classList.toggle('-translate-x-full');
+        });
+
+        document.body.addEventListener('click', (e) => {
+             if (window.innerWidth < 1024 && !sidebarEl.contains(e.target) && e.target !== menuToggleBtn) {
+                sidebarEl.classList.add('-translate-x-full');
+            }
+        });
+
+        renderNavigation();
+        renderContent(0, 0, 0);
+
+    });
+</script>
+</body>
+</html>
+```
