@@ -2618,3 +2618,5 @@ Read other people's code.
 Don't be afraid to make mistakes and debug them.
 
 Once you have a solid grasp of these Python concepts, you'll be well-prepared to tackle Data Structures and Algorithms with confidence! Good luck on your learning journey! 🐍✨
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7765519118524870"
+     crossorigin="anonymous"></script>
